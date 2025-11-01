@@ -45,7 +45,7 @@ elif page == "Projects":
 # ================================
 # Halaman DATA VIZ
 # ================================
-elif page == "Data Viz":
+if page == "Data Viz":
     st.header("Data Visualization")
     data_path = "data/NILAI_UTBK_ANGK_4.xlsx"
 
@@ -84,7 +84,7 @@ else:
 # ================================
 # Halaman TRAIN MODEL
 # ================================
-elif page == "Train Model":
+if page == "Train Model":
     st.header("Train Model on Uploaded UTBK Dataset")
     st.write("Upload dataset untuk melatih model prediksi kelulusan otomatis.")
 
