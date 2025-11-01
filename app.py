@@ -59,7 +59,7 @@ else:
 
 
             st.subheader("Preview Data")
-        st.dataframe(df.head())
+                st.dataframe(df.head())
 
             st.subheader("Deskripsi Statistik")
             st.write(df.describe())
