@@ -71,7 +71,7 @@ elif menu == "Proyek Saya":
         st.image("https://cdn-icons-png.flaticon.com/512/3135/3135706.png", width=120)
         st.write("Eksperimen AI untuk menghasilkan soal matematika yang relevan dengan kurikulum.")
 
- -------------------------------------------
+# -------------------------------------------
 # 📊 VISUALISASI DATA
 # -------------------------------------------
 elif menu == "Visualisasi Data":
