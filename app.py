@@ -71,6 +71,32 @@ elif menu == "Proyek Saya":
         st.image("https://cdn-icons-png.flaticon.com/512/3135/3135706.png", width=120)
         st.write("Eksperimen AI untuk menghasilkan soal matematika yang relevan dengan kurikulum.")
 
+ -------------------------------------------
+# 📊 VISUALISASI DATA
+# -------------------------------------------
+elif menu == "Visualisasi Data":
+    st.header("📊 Visualisasi Dataset UTBK")
+
+    pd.read_excel("NILAI_UTBK_ANGK_4.xlsx")
+    st.write("### Cuplikan Data")
+    st.dataframe(df.head())
+
+    numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns
+
+    st.write("### Distribusi Fitur")
+    selected_col = st.selectbox("Pilih kolom untuk dilihat distribusinya:", numeric_cols)
+    fig, ax = plt.subplots()
+    sns.histplot(df[selected_col], kde=True, color="teal", ax=ax)
+    st.pyplot(fig)
+
+    st.write("### Korelasi antar Fitur Numerik")
+    corr = df[numeric_cols].corr()
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.heatmap(corr, cmap="coolwarm", center=0)
+    st.pyplot(fig)
+
+
+
 # ---------------------------
 # Analisis & Prediksi UTBK
 # ---------------------------
