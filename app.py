@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -48,16 +47,17 @@ elif page == "Projects":
 # ================================
 elif page == "Data Viz":
     st.header("Data Visualization")
-    data_path = "data/NILAI_UTBK_ANGK_4.xlsx"
+    uploaded = st.file_uploader("Upload file CSV atau Excel untuk visualisasi", type=['csv', 'xlsx'])
 
-if os.path.exists(data_path):
-    df = pd.read_excel(data_path)
-    st.success("✅ Dataset UTBK berhasil dimuat otomatis dari folder data/")
-    st.dataframe(df.head())
-else:
-    st.error("❌ Dataset belum ditemukan. Harap tambahkan file ke folder data/")
+    if uploaded is not None:
+        try:
+            if uploaded.name.endswith('.csv'):
+                df = pd.read_csv(uploaded)
+            else:
+                df = pd.read_excel(uploaded)
 
-
+            st.subheader("Preview Data")
+            st.dataframe(df.head())
 
             st.subheader("Deskripsi Statistik")
             st.write(df.describe())
@@ -80,23 +80,25 @@ elif page == "Train Model":
     st.header("Train Model on Uploaded UTBK Dataset")
     st.write("Upload dataset untuk melatih model prediksi kelulusan otomatis.")
 
-   data_path = "data/NILAI UTBK ANGK 4.xlsx"
+    uploaded = st.file_uploader("Upload file Excel atau CSV", type=['csv', 'xlsx'])
 
-if os.path.exists(data_path):
-    df = pd.read_excel(data_path)
-    st.success("✅ Dataset UTBK berhasil dimuat otomatis dari folder data/")
-    st.dataframe(df.head())
-else:
-    st.error("❌ Dataset belum ditemukan. Harap tambahkan file ke folder data/")
-
+    if uploaded is not None:
+        # Baca file
+        if uploaded.name.endswith('.csv'):
+            df = pd.read_csv(uploaded)
+        else:
+            df = pd.read_excel(uploaded)
 
         st.subheader("Preview Data")
         st.dataframe(df.head())
 
+        # Pilih kolom numeric
         num_cols = df.select_dtypes(include=['number']).columns.tolist()
         st.write("Kolom numerik terdeteksi:", num_cols)
 
-        target_choice = st.selectbox("Pilih metode target:", ["Berdasarkan median skor", "Gunakan kolom tertentu"])
+        # Pilih metode pembuatan target
+        target_choice = st.selectbox("Pilih metode target:",
+                                     ["Berdasarkan median skor", "Gunakan kolom tertentu"])
 
         if target_choice == "Gunakan kolom tertentu":
             target_col = st.selectbox("Pilih kolom target:", df.columns)
@@ -107,6 +109,7 @@ else:
             df['lulus'] = (df[main_col] >= median_val).astype(int)
             st.info(f"Target dibuat otomatis berdasarkan median {main_col}: {median_val:.2f}")
 
+        # Training model
         if st.button("Train Model"):
             from sklearn.model_selection import train_test_split
             from sklearn.pipeline import Pipeline
@@ -120,7 +123,9 @@ else:
             X = df[features]
             y = df['lulus']
 
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42, stratify=y
+            )
 
             pipe = Pipeline([
                 ('imputer', SimpleImputer(strategy='median')),
@@ -132,11 +137,13 @@ else:
             acc = pipe.score(X_test, y_test)
             st.success(f"✅ Model trained successfully! Akurasi test: {acc:.2f}")
 
+            # Simpan model
             os.makedirs("model", exist_ok=True)
             with open("model/utbk_model.pkl", "wb") as f:
                 pickle.dump(pipe, f)
             st.info("Model disimpan ke folder model/utbk_model.pkl")
 
+            # Visualisasi target
             st.subheader("Distribusi Target (0 = Tidak Lulus, 1 = Lulus)")
             fig, ax = plt.subplots()
             sns.countplot(x='lulus', data=df, ax=ax)
@@ -161,15 +168,15 @@ elif page == "Predict":
             st.subheader("Preview Data")
             st.dataframe(data.head())
 
+            # Load model
             with open(model_path, 'rb') as f:
                 model = pickle.load(f)
 
-            if 'preprocessor' in model.named_steps:
-                num_cols = model.named_steps['preprocessor'].transformers[0][2]
-            else:
-                num_cols = model.named_steps['imputer'].feature_names_in_
-
+            # Ambil kolom numerik yang digunakan model
+            num_cols = model.named_steps['preprocessor'].transformers[0][2] \
+                if 'preprocessor' in model.named_steps else model.named_steps['imputer'].feature_names_in_
             X = data[num_cols]
+
             preds = model.predict(X)
             data['pred_lulus'] = preds
             st.subheader("Hasil Prediksi")
