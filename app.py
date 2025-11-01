@@ -47,7 +47,15 @@ elif page == "Projects":
 # ================================
 elif page == "Data Viz":
     st.header("Data Visualization")
-    uploaded = st.file_uploader("Upload file CSV atau Excel untuk visualisasi", type=['csv', 'xlsx'])
+    data_path = "data/NILAI UTBK ANGK 4.xlsx"
+
+if os.path.exists(data_path):
+    df = pd.read_excel(data_path)
+    st.success("✅ Dataset UTBK berhasil dimuat otomatis dari folder data/")
+    st.dataframe(df.head())
+else:
+    st.error("❌ Dataset belum ditemukan. Harap tambahkan file ke folder data/")
+
 
     if uploaded is not None:
         try:
