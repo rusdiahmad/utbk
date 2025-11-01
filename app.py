@@ -79,7 +79,7 @@ elif menu == "Analisis & Prediksi UTBK":
 
     # Try read excel
     try:
-        df = pd.read_excel("NILAI UTBK ANGK 4.xlsx")
+        df = pd.read_excel("NILAI_UTBK_ANGK_4.xlsx")
     except Exception as e:
         st.error(f"Gagal membaca file `NILAI UTBK ANGK 4.xlsx`. Pastikan file ada di root repo. Error: {e}")
         st.stop()
