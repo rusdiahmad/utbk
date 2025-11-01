@@ -58,8 +58,8 @@ else:
     st.error("❌ Dataset belum ditemukan. Harap tambahkan file ke folder data/")
 
 
-             st.subheader("Preview Data")
-            st.dataframe(df.head())
+            st.subheader("Preview Data")
+        st.dataframe(df.head())
 
             st.subheader("Deskripsi Statistik")
             st.write(df.describe())
