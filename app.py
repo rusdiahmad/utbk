@@ -47,7 +47,7 @@ elif page == "Projects":
 # ================================
 elif page == "Data Viz":
     st.header("Data Visualization")
-    data_path = "data/NILAI UTBK ANGK 4.xlsx"
+    data_path = "data/NILAI_UTBK_ANGK_4.xlsx"
 
 if os.path.exists(data_path):
     df = pd.read_excel(data_path)
@@ -88,7 +88,11 @@ elif page == "Train Model":
     st.header("Train Model on Uploaded UTBK Dataset")
     st.write("Upload dataset untuk melatih model prediksi kelulusan otomatis.")
 
-    uploaded = st.file_uploader("Upload file Excel atau CSV", type=['csv', 'xlsx'])
+    data_path = "data/NILAI_UTBK_ANGK_4.xlsx"
+df = pd.read_excel(data_path)
+st.success("✅ Dataset UTBK otomatis dimuat dari folder data/")
+st.dataframe(df.head())
+
 
     if uploaded is not None:
         # Baca file
