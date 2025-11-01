@@ -94,13 +94,7 @@ st.success("✅ Dataset UTBK otomatis dimuat dari folder data/")
 st.dataframe(df.head())
 
 
-    if uploaded is not None:
-        # Baca file
-        if uploaded.name.endswith('.csv'):
-            df = pd.read_csv(uploaded)
-        else:
-            df = pd.read_excel(uploaded)
-
+  
         st.subheader("Preview Data")
         st.dataframe(df.head())
 
