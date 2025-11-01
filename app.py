@@ -94,9 +94,6 @@ st.success("✅ Dataset UTBK otomatis dimuat dari folder data/")
 st.dataframe(df.head())
 
 
-  
-        st.subheader("Preview Data")
-        st.dataframe(df.head())
 
         # Pilih kolom numeric
         num_cols = df.select_dtypes(include=['number']).columns.tolist()
