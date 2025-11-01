@@ -1,16 +1,12 @@
 # app.py
 """
-Professional Streamlit app for:
-"My AI & ML Portfolio: UTBK Score Prediction Dashboard"
+My AI & ML Portfolio:
+UTBK Subtest Score Analysis & Prediction Dashboard (Bahasa Indonesia, Professional)
 
-Requirements (put into requirements.txt):
-streamlit
-pandas
-numpy
-matplotlib
-seaborn
-scikit-learn
-openpyxl
+Pastikan:
+- File excel bernama 'NILAI UTBK ANGK 4.xlsx' ada di root repository.
+- Foto profil 'Pas Photo.jpg' ada di root repository (opsional).
+- requirements.txt berisi openpyxl agar Streamlit Cloud dapat membaca .xlsx
 """
 
 import streamlit as st
@@ -26,119 +22,111 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import io
 
 # ---------------------------
-# Page config
+# Konfigurasi halaman
 # ---------------------------
 st.set_page_config(
-    page_title="My AI & ML Portfolio: UTBK Score Prediction Dashboard",
-    page_icon="🤖",
+    page_title="UTBK Subtest Score Analysis & Prediction Dashboard",
+    page_icon="🎓",
     layout="wide",
 )
 
-# ---------------------------
-# Styles (small)
-# ---------------------------
-MAIN_TITLE = "🤖 My AI & ML Portfolio: UTBK Score Prediction Dashboard"
-st.title(MAIN_TITLE)
+# Gaya singkat
+st.title("🎓 My AI & ML Portfolio: UTBK Subtest Score Analysis & Prediction Dashboard")
 st.markdown(
-    "A professional portfolio app for the **AI & ML Bootcamp** — "
-    "data exploration and multi-output prediction of UTBK subtest scores (TO1..TO7)."
+    "Aplikasi portofolio (Bootcamp AI & ML) untuk **analisis** dan **prediksi** skor UTBK per subtes "
+    "(PU, PK, PPU, PBM, LIND, LING, PM, Rata-rata) berdasarkan jurusan/prodi dan fitur terkait."
 )
+st.write("---")
 
 # ---------------------------
-# Sidebar
+# Sidebar navigasi
 # ---------------------------
-st.sidebar.header("Navigation")
-menu = st.sidebar.radio(
-    "Go to",
-    ["Home", "Tentang Saya", "Proyek Saya", "Analisis & Prediksi UTBK"]
-)
+st.sidebar.header("Navigasi")
+page = st.sidebar.radio("Pilih halaman", ["Beranda", "Tentang Saya", "Proyek Saya", "Analisis & Prediksi UTBK"])
 
 # ---------------------------
-# Helper utilities
+# Utility functions
 # ---------------------------
 @st.cache_data
 def load_excel(path: str):
     return pd.read_excel(path)
 
-def detect_to_columns(df: pd.DataFrame):
-    # try variants: "TO 1", "TO1", "TO 2", etc.
-    to_cols = []
-    for i in range(1, 8):
-        for variant in (f"TO {i}", f"TO{i}", f"TO{i}".upper(), f"TO {i}".upper()):
-            if variant in df.columns and variant not in to_cols:
-                to_cols.append(variant)
-    # also include columns that start with "TO " or "TO"
-    auto = [c for c in df.columns if c.strip().upper().startswith("TO")]
-    for c in auto:
-        if c not in to_cols:
-            to_cols.append(c)
-    return to_cols
+def detect_subtest_columns(df: pd.DataFrame):
+    # Target subtest (expected): PU, PK, PPU, PBM, LIND, LING, PM, Rata-rata
+    expected = ["PU", "PK", "PPU", "PBM", "LIND", "LING", "PM", "Rata-rata"]
+    detected = [c for c in expected if c in df.columns]
+    # If 'Rata-rata' named differently, attempt to find close names
+    if "Rata-rata" not in detected:
+        for c in df.columns:
+            if c.strip().lower() in ["rata-rata", "rata rata", "rata2", "rata_rata", "rata"]:
+                detected.append(c)
+                break
+    return detected
 
-def encode_features(X: pd.DataFrame, encoders: dict = None):
-    encoders = {} if encoders is None else encoders
-    X_proc = pd.DataFrame(index=X.index)
+def encode_features(X: pd.DataFrame):
+    encoders = {}
+    X_enc = pd.DataFrame(index=X.index)
     for col in X.columns:
-        if X[col].dtype == object or X[col].dtype.name == "category":
+        if X[col].dtype == object or X[col].dtype.name == 'category':
             le = LabelEncoder()
-            X_proc[col] = le.fit_transform(X[col].astype(str).fillna("___NA___"))
+            vals = X[col].astype(str).fillna("___NA___")
+            X_enc[col] = le.fit_transform(vals)
             encoders[col] = le
         else:
-            X_proc[col] = X[col].fillna(X[col].median())
-    return X_proc, encoders
+            X_enc[col] = X[col].fillna(X[col].median())
+    return X_enc, encoders
 
-def transform_new_features(X_new: pd.DataFrame, encoders: dict, model_features: list):
-    X_tmp = pd.DataFrame(index=X_new.index)
+def transform_new(X_new: pd.DataFrame, encoders: dict, model_features: list):
+    X_t = pd.DataFrame(index=X_new.index)
     for col in model_features:
         if col in X_new.columns:
-            val = X_new[col]
+            series = X_new[col]
         else:
-            val = [np.nan] * len(X_new)
+            series = pd.Series([np.nan]*len(X_new), index=X_new.index)
+
         if col in encoders:
             le = encoders[col]
-            # map unseen labels to a special code (encoded as -1)
             mapped = []
-            classes = set(le.classes_.astype(str))
-            for v in val.astype(str).fillna("___NA___"):
+            classes = list(map(str, le.classes_))
+            for v in series.astype(str).fillna("___NA___"):
                 if v in classes:
                     mapped.append(int(np.where(le.classes_ == v)[0][0]))
                 else:
+                    # unseen label -> map to -1
                     mapped.append(-1)
-            X_tmp[col] = mapped
+            X_t[col] = mapped
         else:
-            # numeric
-            X_tmp[col] = pd.to_numeric(val, errors="coerce").fillna(np.nanmedian(np.array(val, dtype=float)))
-    return X_tmp
+            X_t[col] = pd.to_numeric(series, errors='coerce').fillna(np.nanmedian(np.array(series.dropna(), dtype=float)) if series.dropna().size>0 else 0)
+    return X_t
 
 # ---------------------------
-# HOME
+# BERANDA
 # ---------------------------
-if menu == "Home":
-    st.header("Welcome")
-    st.markdown(
-        "Use the left sidebar to navigate. \n\n"
-        "- **Analisis & Prediksi UTBK**: main page to explore and train models. \n"
-        "- **Tentang Saya / Proyek Saya**: portfolio sections for presentation."
+if page == "Beranda":
+    st.header("Beranda")
+    st.write(
+        "Selamat datang — gunakan sidebar untuk masuk ke halaman 'Analisis & Prediksi UTBK' "
+        "atau melihat profil & proyek."
     )
-    st.info("Make sure `NILAI UTBK ANGK 4.xlsx` and `Pas Photo.jpg` are placed in the repository root before deploying.")
+    st.info("Pastikan `NILAI UTBK ANGK 4.xlsx` dan `Pas Photo.jpg` berada di root repository sebelum deploy.")
 
 # ---------------------------
 # TENTANG SAYA
 # ---------------------------
-elif menu == "Tentang Saya":
+elif page == "Tentang Saya":
     st.header("👋 Tentang Saya")
     col1, col2 = st.columns([1, 3])
     with col1:
         try:
-            st.image("Pas Photo.jpg", width=200, caption="Rusdi Ahmad")
+            st.image("Pas Photo.jpg", width=180, caption="Rusdi Ahmad")
         except Exception:
-            st.empty()
-            st.markdown("> (Letakkan `Pas Photo.jpg` di root repo untuk menampilkan foto.)")
+            st.info("Letakkan `Pas Photo.jpg` pada folder repo untuk menampilkan foto profil.")
     with col2:
         st.markdown(
             "**Nama:** Rusdi Ahmad  \n"
             "**Peran:** Guru Matematika & Peserta Bootcamp AI & ML  \n"
             "**Keahlian:** Machine Learning, Visualisasi Data, Streamlit, Pendidikan  \n\n"
-            "> \"Mengintegrasikan AI dalam pembelajaran untuk hasil yang berdampak.\""
+            "> \"Mengaplikasikan AI untuk mendukung pembelajaran dan keputusan pendidikan.\""
         )
     st.write("---")
     st.markdown("**Kontak**: rusdiahmad979@gmail.com")
@@ -146,214 +134,217 @@ elif menu == "Tentang Saya":
 # ---------------------------
 # PROYEK SAYA
 # ---------------------------
-elif menu == "Proyek Saya":
+elif page == "Proyek Saya":
     st.header("💼 Proyek Saya")
     c1, c2, c3 = st.columns(3)
     with c1:
         st.subheader("🏫 UTBK Score Analysis & Prediction")
-        st.image("https://cdn-icons-png.flaticon.com/512/2232/2232688.png", width=120)
-        st.markdown(
-            "Analisis mendalam terhadap nilai UTBK dan model prediksi nilai per subtes (TO1..TO7) "
-            "berbasis fitur jurusan/estimasi."
-        )
+        st.image("https://cdn-icons-png.flaticon.com/512/2232/2232688.png", width=110)
+        st.write("Analisis mendalam nilai UTBK dan model multi-output untuk memprediksi nilai per subtes.")
     with c2:
-        st.subheader("🏠 House Price Prediction (Reference)")
-        st.image("https://cdn-icons-png.flaticon.com/512/619/619153.png", width=120)
-        st.markdown("Proyek referensi regresi: model Random Forest untuk prediksi harga rumah.")
+        st.subheader("🏠 House Price Prediction (Referensi)")
+        st.image("https://cdn-icons-png.flaticon.com/512/619/619153.png", width=110)
+        st.write("Contoh proyek regresi menggunakan dataset House Prices (Kaggle).")
     with c3:
         st.subheader("🧮 Mathematics Question Generator (AI)")
-        st.image("https://cdn-icons-png.flaticon.com/512/3135/3135706.png", width=120)
-        st.markdown("Eksperimen AI untuk menghasilkan soal matematika otomatis — relevan dengan latar pendidikanku.")
+        st.image("https://cdn-icons-png.flaticon.com/512/3135/3135706.png", width=110)
+        st.write("Eksperimen AI untuk menghasilkan soal matematika otomatis — relevan dengan latar pendidikan.")
 
 # ---------------------------
 # ANALISIS & PREDIKSI UTBK
 # ---------------------------
-elif menu == "Analisis & Prediksi UTBK":
-    st.header("📊 Analisis Data & Prediksi Nilai Per Subtes (TO1..TO7)")
+elif page == "Analisis & Prediksi UTBK":
+    st.header("📊 Analisis & Prediksi Nilai Subtes UTBK (Semua Subtes Sekaligus)")
 
-    # --- Load file
+    # Load data
     try:
         df = load_excel("NILAI UTBK ANGK 4.xlsx")
     except FileNotFoundError:
-        st.error("File `NILAI UTBK ANGK 4.xlsx` tidak ditemukan di root repository.")
+        st.error("File `NILAI UTBK ANGK 4.xlsx` tidak ditemukan di root repository. Upload terlebih dahulu.")
         st.stop()
     except Exception as e:
         st.error(f"Gagal membaca file Excel: {e}")
         st.stop()
 
-    # Normalize column names
+    # Normalisasi nama kolom
     df.columns = [c.strip() for c in df.columns]
 
-    # Show basic info
-    with st.expander("Preview data & info"):
-        st.markdown("**Data preview (first rows)**")
-        st.dataframe(df.head())
-        st.markdown("**Columns detected**")
+    # Tampilkan preview dan kolom
+    with st.expander("Pratinjau data & kolom"):
+        st.dataframe(df.head(10))
+        st.write("Kolom terdeteksi:")
         st.write(list(df.columns))
 
-    # Detect TO columns
-    to_cols = detect_to_columns(df)
-    st.markdown(f"**Detected subtest columns (TO):** `{to_cols}`")
+    # Deteksi kolom subtes
+    subtests = detect_subtest_columns(df)
+    st.markdown(f"**Subtest terdeteksi yang akan dianalisis / diprediksi:** `{subtests}`")
 
-    if not to_cols:
-        st.warning("Tidak ditemukan kolom TO1..TO7. Pastikan kolom bernama 'TO 1', 'TO1', dll.")
+    if len(subtests) < 1:
+        st.warning("Kolom subtes (PU, PK, PPU, PBM, LIND, LING, PM, Rata-rata) tidak ditemukan. Pastikan kolom sesuai.")
     else:
-        # EDA area
-        st.subheader("Exploratory Data Analysis")
-        # Summary stats for TO columns
-        st.markdown("**Statistik deskriptif per subtes**")
-        st.dataframe(df[to_cols].describe().T)
+        # Statistik deskriptif
+        st.subheader("Statistik Deskriptif Subtes")
+        st.dataframe(df[subtests].describe().T)
 
-        # Distribution and boxplot
-        st.markdown("**Distribusi & Boxplot per subtes**")
-        sel_to = st.selectbox("Pilih subtest", to_cols)
-        fig_distr, ax = plt.subplots(1, 2, figsize=(12, 4))
-        sns.histplot(df[sel_to].dropna(), kde=True, ax=ax[0])
-        ax[0].set_title(f"Distribusi - {sel_to}")
-        sns.boxplot(x=df[sel_to].dropna(), ax=ax[1])
-        ax[1].set_title(f"Boxplot - {sel_to}")
-        st.pyplot(fig_distr)
+        # Pilih subtes untuk visual
+        st.subheader("Visualisasi Distribusi & Boxplot")
+        sel = st.selectbox("Pilih subtes untuk lihat distribusi", subtests)
+        fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+        sns.histplot(df[sel].dropna(), kde=True, ax=axes[0])
+        axes[0].set_title(f"Distribusi - {sel}")
+        sns.boxplot(x=df[sel].dropna(), ax=axes[1])
+        axes[1].set_title(f"Boxplot - {sel}")
+        st.pyplot(fig)
 
-        # Correlation heatmap among TO columns
-        st.markdown("**Korelasi antar subtes**")
+        # Korelasi heatmap
+        st.subheader("Korelasi Antar Subtes")
         corr_fig, corr_ax = plt.subplots(figsize=(8, 6))
-        sns.heatmap(df[to_cols].corr(), annot=True, fmt=".2f", cmap="vlag", center=0, ax=corr_ax)
+        sns.heatmap(df[subtests].corr(), annot=True, fmt=".2f", cmap="vlag", center=0, ax=corr_ax)
         st.pyplot(corr_fig)
 
-    # Additional summaries
-    st.subheader("Summary per Jurusan / Prodi")
-    if "JURUSAN/PRODI" in df.columns:
-        group_col = "JURUSAN/PRODI"
-    else:
-        # fallback to 'RUMPUN' or others
+        # Perbandingan per jurusan/prodi
+        st.subheader("Perbandingan Rata-rata Per Jurusan / Prodi")
         group_col = None
-        for candidate in ["RUMPUN", "SUB RUMPUN", "KAMPUS", "STATUS"]:
-            if candidate in df.columns:
-                group_col = candidate
-                break
+        if "JURUSAN/PRODI" in df.columns:
+            group_col = "JURUSAN/PRODI"
+        else:
+            # fallback
+            for cand in ["RUMPUN", "SUB RUMPUN", "KAMPUS"]:
+                if cand in df.columns:
+                    group_col = cand
+                    break
 
-    if group_col:
-        st.markdown(f"Grouping by **{group_col}**")
-        top = st.slider("Show top N groups by count", 3, 10, 5)
-        counts = df[group_col].value_counts().head(top)
-        st.bar_chart(counts)
-        # show mean per group for average TO if exists
-        if to_cols:
-            mean_by_group = df.groupby(group_col)[to_cols].mean().reset_index()
-            st.dataframe(mean_by_group.head(top).set_index(group_col))
-    else:
-        st.info("Tidak ditemukan kolom jurusan/prodi untuk summary per jurusan. Jika ada, beri nama kolom 'JURUSAN/PRODI' atau 'RUMPUN'.")
+        if group_col:
+            st.markdown(f"Grouping berdasarkan: **{group_col}**")
+            top_n = st.slider("Tampilkan top N jurusan (berdasarkan jumlah siswa)", 3, 20, 7)
+            counts = df[group_col].value_counts().head(top_n)
+            st.bar_chart(counts)
+            # rata-rata per group
+            mean_by_group = df.groupby(group_col)[subtests].mean().reset_index()
+            st.dataframe(mean_by_group.head(top_n).set_index(group_col))
+        else:
+            st.info("Kolom jurusan/prodi tidak ditemukan (cari kolom bernama 'JURUSAN/PRODI' atau 'RUMPUN').")
 
-    # Modeling preparation
+    # Persiapan fitur & target untuk model
     st.write("---")
-    st.subheader("🔧 Model: Multi-output Regression (Predict TO1..TO7)")
+    st.subheader("🔧 Persiapan Model & Training (Multi-output Regression)")
 
-    # Pick features automatically (prefer certain columns)
-    # Candidate features: JURUSAN/PRODI, PILIHAN 1..4, RATA- RATA TO 4 S.D 7, ESTIMASI RATA-RATA, Rata-rata, ESTIMASI NILAI MINIMUM, ESTIMASI NILAI MAKSIMUM
+    # Fitur kandidat otomatis
     candidate_features = [
-        "JURUSAN/PRODI", "PILIHAN 1 PTN-PRODI", "PILIHAN 2 PTN-PRODI",
+        "JURUSAN/PRODI", "RUMPUN", "PILIHAN 1 PTN-PRODI", "PILIHAN 2 PTN-PRODI",
         "PILIHAN 3 PTN-PRODI", "PILIHAN 4 PTN-PRODI",
-        "RATA- RATA TO 4 S.D 7", "ESTIMASI RATA-RATA", "Rata-rata",
-        "ESTIMASI NILAI MINIMUM", "ESTIMASI NILAI MAKSIMUM"
+        "RATA- RATA TO 4 S.D 7", "ESTIMASI RATA-RATA", "ESTIMASI NILAI MINIMUM",
+        "ESTIMASI NILAI MAKSIMUM", "Rata-rata"
     ]
-    features = [c for c in candidate_features if c in df.columns]
+    features = [f for f in candidate_features if f in df.columns]
 
-    # also include a few numeric extras if exist (limit 3)
-    numeric_candidates = [c for c in df.columns if df[c].dtype in [np.float64, np.int64] and c not in to_cols]
-    numeric_extra = numeric_candidates[:3]
-    features += numeric_extra
+    # Tambahkan beberapa kolom numerik pendukung jika ada (maks 3)
+    numeric_candidates = [c for c in df.columns if df[c].dtype in [np.float64, np.int64] and c not in subtests]
+    features += numeric_candidates[:3]
 
-    st.markdown(f"**Features detected (will be used for training):** {features if features else 'No features detected automatically.'}")
+    st.markdown(f"**Fitur yang terdeteksi otomatis:** `{features}` (bisa disesuaikan di dataset)")
 
-    # Train button
-    train_btn = st.button("▶️ Train Multi-output Model")
-    if train_btn:
-        # Prepare data: drop rows with missing targets
+    # Tombol training
+    if st.button("▶️ Latih Model Multi-output (Random Forest)"):
+        # Persiapan data training
         df_model = df.copy()
-        df_model = df_model.dropna(subset=to_cols, how="any").reset_index(drop=True)
+        # drop rows tanpa target lengkap
+        df_model = df_model.dropna(subset=subtests, how='any').reset_index(drop=True)
         if df_model.shape[0] < 10:
-            st.warning("Data pelatihan setelah drop missing target kurang dari 10 baris. Model mungkin tidak stabil.")
+            st.warning("Data pelatihan kurang (<10 baris) setelah menghapus baris missing target. Model mungkin tidak stabil.")
 
-        # Build X
-        if not features and "JURUSAN/PRODI" in df_model.columns:
-            features = ["JURUSAN/PRODI"]
-            st.info("Fallback: using JURUSAN/PRODI as single feature.")
-        elif not features:
-            st.error("Tidak ada fitur yang ditemukan untuk melatih model. Tambahkan kolom fitur ke dataset.")
-            st.stop()
+        if not features:
+            # fallback ke JURUSAN/PRODI jika ada
+            if "JURUSAN/PRODI" in df_model.columns:
+                features = ["JURUSAN/PRODI"]
+                st.info("Fallback: menggunakan 'JURUSAN/PRODI' sebagai fitur tunggal.")
+            else:
+                st.error("Tidak ada fitur yang cocok untuk training. Tambahkan kolom fitur ke dataset.")
+                st.stop()
 
         X = df_model[features].copy()
-        y = df_model[to_cols].astype(float).copy()
+        y = df_model[subtests].astype(float).copy()
 
-        # Encode categorical and clean numeric
+        # Encode categorical & handle numeric
         X_proc, encoders = encode_features(X)
 
-        # train/test split
+        # Split
         X_train, X_test, y_train, y_test = train_test_split(X_proc, y, test_size=0.2, random_state=42)
 
-        # model training
-        with st.spinner("Training model (Random Forest, multi-output)..."):
-            base = RandomForestRegressor(n_estimators=150, random_state=42)
+        # Train model
+        with st.spinner("Melatih model..."):
+            base = RandomForestRegressor(n_estimators=200, random_state=42)
             model = MultiOutputRegressor(base, n_jobs=-1)
             model.fit(X_train, y_train)
 
-        # predictions & metrics
+        # Evaluasi
         y_pred = model.predict(X_test)
         metrics = []
-        for i, col in enumerate(to_cols):
+        for i, col in enumerate(subtests):
             mae = mean_absolute_error(y_test.iloc[:, i], y_pred[:, i])
             rmse = np.sqrt(mean_squared_error(y_test.iloc[:, i], y_pred[:, i]))
             r2 = r2_score(y_test.iloc[:, i], y_pred[:, i])
             metrics.append({"Subtest": col, "MAE": mae, "RMSE": rmse, "R2": r2})
         metrics_df = pd.DataFrame(metrics).set_index("Subtest")
 
-        st.success("✅ Training completed")
-        st.subheader("Model evaluation (on test set)")
+        st.success("✅ Pelatihan selesai")
+        st.subheader("Hasil evaluasi pada test set")
         st.dataframe(metrics_df)
 
-        # Save model to session state
-        st.session_state.model = model
-        st.session_state.encoders = encoders
-        st.session_state.model_features = X_proc.columns.tolist()
-        st.session_state.targets = to_cols
+        # Simpan ke session state
+        st.session_state["model"] = model
+        st.session_state["encoders"] = encoders
+        st.session_state["model_features"] = X_proc.columns.tolist()
+        st.session_state["targets"] = subtests
 
-    # Prediction block
+    # Bagian prediksi
     st.write("---")
-    st.subheader("📥 Prediksi untuk Data Baru")
+    st.subheader("📥 Prediksi pada Data Baru (Upload CSV atau Input Manual)")
 
     if "model" in st.session_state:
-        mode = st.radio("Pilih mode input untuk prediksi:", ["Upload CSV", "Single-row Manual Input"])
-
-        model = st.session_state.model
-        encoders = st.session_state.encoders
-        model_features = st.session_state.model_features
-        targets = st.session_state.targets
+        mode = st.radio("Pilih mode input untuk prediksi:", ["Upload CSV", "Input Manual"])
+        model = st.session_state["model"]
+        encoders = st.session_state["encoders"]
+        model_features = st.session_state["model_features"]
+        targets = st.session_state["targets"]
 
         if mode == "Upload CSV":
-            uploaded = st.file_uploader("Upload CSV berisi baris siswa untuk diprediksi (header harus mengandung fitur yang sama)", type=["csv"])
+            uploaded = st.file_uploader("Upload file CSV berisi baris siswa (header harus memuat fitur yang sama)", type=["csv"])
             if uploaded is not None:
                 newdf = pd.read_csv(uploaded)
-                st.markdown("Preview uploaded data")
+                st.markdown("Preview data upload (5 baris pertama)")
                 st.dataframe(newdf.head())
 
+                # Build X_new
                 X_new = pd.DataFrame()
                 for f in model_features:
-                    if f in newdf.columns:
-                        X_new[f] = newdf[f]
-                    else:
-                        X_new[f] = np.nan
+                    X_new[f] = newdf[f] if f in newdf.columns else np.nan
 
-                X_new_proc = transform_new_features(X_new, encoders, model_features)
+                X_new_proc = transform_new(X_new, encoders, model_features)
                 preds = model.predict(X_new_proc)
                 preds_df = pd.DataFrame(preds, columns=targets)
-                st.markdown("Hasil prediksi (first rows)")
-                st.dataframe(preds_df.head())
 
-                csv = preds_df.to_csv(index=False).encode("utf-8")
-                st.download_button("💾 Download hasil prediksi", data=csv, file_name="prediksi_utbk.csv", mime="text/csv")
+                # If jurusan column exists in uploaded, include it; else try to include from newdf
+                out_df = preds_df.copy()
+                if "JURUSAN/PRODI" in newdf.columns:
+                    out_df["JURUSAN/PRODI"] = newdf["JURUSAN/PRODI"].values
+                else:
+                    out_df["JURUSAN/PRODI"] = newdf[model_features[0]].values if model_features and model_features[0] in newdf.columns else "Unknown"
+
+                # compute rata-rata prediksi dan ranking
+                out_df["Pred_Rata-rata"] = out_df[targets].mean(axis=1)
+                out_df["Ranking (prediksi)"] = out_df["Pred_Rata-rata"].rank(ascending=False, method="min").astype(int)
+
+                st.markdown("Hasil prediksi (5 baris pertama)")
+                st.dataframe(out_df.head())
+
+                # Download button
+                csv = out_df.to_csv(index=False).encode("utf-8")
+                st.download_button("💾 Download Hasil Prediksi (CSV)", data=csv, file_name="prediksi_utbk.csv", mime="text/csv")
 
         else:
-            st.markdown("Isi fitur manual (untuk satu siswa)")
+            # Manual input single row
+            st.markdown("Isi fitur untuk 1 siswa (input manual):")
             input_vals = {}
             for f in model_features:
                 if f in df.columns and df[f].dtype == object:
@@ -361,22 +352,28 @@ elif menu == "Analisis & Prediksi UTBK":
                     input_vals[f] = st.text_input(f, value=default)
                 else:
                     default_num = float(df[f].dropna().median()) if f in df.columns and not df[f].dropna().empty else 0.0
-                    input_vals[f] = st.number_input(f, value=default_num)
+                    input_vals[f] = st.number_input(f"{f}", value=default_num)
 
-            if st.button("Run prediction (manual)"):
+            if st.button("Run Prediksi (Manual)"):
                 X_manual = pd.DataFrame([input_vals])
-                X_manual_proc = transform_new_features(X_manual, encoders, model_features)
+                X_manual_proc = transform_new(X_manual, encoders, model_features)
                 pred = model.predict(X_manual_proc)
                 pred_df = pd.DataFrame(pred, columns=targets)
-                st.markdown("Hasil prediksi (manual):")
+                pred_df["Pred_Rata-rata"] = pred_df.mean(axis=1)
+                pred_df["Ranking (prediksi)"] = 1
+                st.markdown("Hasil prediksi (manual)")
                 st.dataframe(pred_df.T)
 
+                # Download
+                csv = pred_df.to_csv(index=False).encode("utf-8")
+                st.download_button("💾 Download Hasil Prediksi (Manual)", data=csv, file_name="prediksi_manual_utbk.csv", mime="text/csv")
+
     else:
-        st.info("Tekan tombol **Train Multi-output Model** untuk melatih model terlebih dahulu.")
+        st.info("Silakan latih model terlebih dahulu dengan menekan tombol 'Latih Model Multi-output (Random Forest)' di atas.")
 
     st.write("---")
     st.markdown(
-        "Catatan: Aplikasi ini dibuat sebagai portofolio dan contoh implementasi ML. "
-        "Untuk penggunaan produksi lakukan feature engineering lebih matang, cross-validation, "
-        "hyperparameter tuning, dan evaluasi lebih lengkap."
+        "Catatan: Model ini dibuat sebagai contoh portofolio Bootcamp AI & ML. "
+        "Untuk keperluan produksi/performance lebih baik lakukan feature engineering lanjutan, cross-validation, "
+        "hyperparameter tuning, dan validasi eksternal."
     )
