@@ -114,22 +114,210 @@ if page == "Beranda":
 # TENTANG SAYA
 # ---------------------------
 elif page == "Tentang Saya":
-    st.header("👋 Tentang Saya")
-    col1, col2 = st.columns([1, 3])
+    st.header("👨‍🏫 Tentang Saya")
+
+    # Layout dua kolom
+    col1, col2 = st.columns([1, 2.5])
     with col1:
         try:
-            st.image("Pas Photo.jpg", width=180, caption="Rusdi Ahmad")
+            st.image("Pas Photo.jpg", width=240, caption="Rusdi Ahmad")
         except Exception:
-            st.info("Letakkan `Pas Photo.jpg` pada folder repo untuk menampilkan foto profil.")
+            st.warning("Letakkan file `Pas Photo.jpg` di root folder repository untuk menampilkan foto profil.")
+
+        st.markdown("### 📬 Hubungi Saya:")
+        st.markdown("""
+        - 📧 [Email](mailto:rusdiahmad979@gmail.com): rusdiahmad979@gmail.com  
+        - 🔗 [LinkedIn](https://www.linkedin.com/in/rusdi-ahmad-a2948a1a4)  
+        - 📍 Kota Bogor, Indonesia
+        """)
+
     with col2:
-        st.markdown(
-            "**Nama:** Rusdi Ahmad  \n"
-            "**Peran:** Guru Matematika & Peserta Bootcamp AI & ML  \n"
-            "**Keahlian:** Machine Learning, Visualisasi Data, Streamlit, Pendidikan  \n\n"
-            "> \"Mengaplikasikan AI untuk mendukung pembelajaran dan keputusan pendidikan.\""
-        )
-    st.write("---")
-    st.markdown("**Kontak**: rusdiahmad979@gmail.com")
+        st.markdown("""
+        ## Rusdi Ahmad  
+        **Guru Matematika | AI & Machine Learning Enthusiast | Data Educator**
+        
+        > *“Menjadikan AI dan analisis data sebagai alat bantu utama untuk meningkatkan mutu pendidikan dan pengambilan keputusan akademik.”*
+        """)
+        st.write("---")
+
+        # Pendidikan
+        st.markdown("### 🎓 Pendidikan")
+        st.markdown("""
+        - **S2 Matematika — Universitas Andalas (UNAND)**  
+          *Fokus: Analisis dan Pendidikan Matematika. Lulus dengan penelitian di bidang pengembangan model pembelajaran berbasis konsep dan pemodelan matematis.*
+        - **S1 Pendidikan Matematika — UIN Imam Bonjol Padang**  
+          *Aktif dalam kegiatan akademik, kompetisi, dan riset pendidikan matematika.*
+        """)
+
+        st.write("---")
+
+        # Pengalaman Kerja
+        st.markdown("### 💼 Pengalaman Kerja")
+        st.markdown("""
+        - **Guru Matematika — Bimbingan Belajar Bintang Pelajar (2024–Sekarang)**  
+          Mengajar Matematika SMA (Statistika, Fungsi, Trigonometri, Vektor, dan lainnya), membimbing siswa dalam persiapan **UTBK–SNBT**, serta menjadi mentor olimpiade matematika.  
+        - **Guru Matematika — SMAN Agam Cendekia**  
+          Mengajar kurikulum nasional dengan pendekatan **kontekstual dan berbasis proyek**.  
+        - **Instruktur — Bimbel CPNS DINNDA**  
+          Melatih peserta **Tes Intelegensi Umum (TIU)** dan **Penalaran Logis**, berfokus pada strategi analitis soal numerik.  
+        - **Pembina Ekstrakurikuler Robotik & Coding (SMA)**  
+          Membimbing siswa memahami **logika pemrograman, robotika dasar, dan AI Education.**
+        """)
+
+        st.write("---")
+
+        # Prestasi
+        st.markdown("### 🏆 Prestasi & Aktivitas")
+        st.markdown("""
+        - Finalis **Olimpiade Nasional Matematika (ON MIPA) UNAND**  
+        - Juara **Kompetisi Sains Madrasah (KSM) Nasional Tingkat Universitas**  
+        - Pembina lomba matematika dan kegiatan keislaman tingkat sekolah & kota  
+        - Panitia dan analis data dalam **Program SSMPTN** sekolah  
+        """)
+
+        st.write("---")
+
+        # Skill Bar (progress)
+        st.markdown("### 🧠 Keahlian Teknis")
+        skill_cols = st.columns(2)
+        with skill_cols[0]:
+            st.write("**Python (pandas, sklearn, Streamlit)**")
+            st.progress(0.9)
+            st.write("**Data Visualization (Matplotlib, Seaborn)**")
+            st.progress(0.85)
+            st.write("**Machine Learning**")
+            st.progress(0.8)
+        with skill_cols[1]:
+            st.write("**Google Colab & Jupyter Notebook**")
+            st.progress(0.9)
+            st.write("**Excel Analytics & Dashboarding**")
+            st.progress(0.95)
+            st.write("**Database & Data Cleaning**")
+            st.progress(0.75)
+
+        st.write("---")
+
+        # Soft Skills
+        st.markdown("### 🤝 Soft Skills")
+        st.markdown("""
+        - Leadership & Mentoring  
+        - Public Speaking  
+        - Curriculum Design  
+        - Analytical Thinking  
+        - Collaborative Problem Solving
+        """)
+
+        st.write("---")
+
+        # Tombol interaktif
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.link_button("💬 Hubungi via Email", "mailto:rusdiahmad979@gmail.com")
+        with col_b:
+            st.link_button("🔗 Kunjungi LinkedIn", "https://www.linkedin.com/in/rusdi-ahmad-a2948a1a4")
+elif page == "Tentang Saya":
+    st.header("👨‍🏫 Tentang Saya")
+
+    # Layout dua kolom
+    col1, col2 = st.columns([1, 2.5])
+    with col1:
+        try:
+            st.image("Pas Photo.jpg", width=240, caption="Rusdi Ahmad")
+        except Exception:
+            st.warning("Letakkan file `Pas Photo.jpg` di root folder repository untuk menampilkan foto profil.")
+
+        st.markdown("### 📬 Hubungi Saya:")
+        st.markdown("""
+        - 📧 [Email](mailto:rusdiahmad979@gmail.com): rusdiahmad979@gmail.com  
+        - 🔗 [LinkedIn](https://www.linkedin.com/in/rusdi-ahmad-a2948a1a4)  
+        - 📍 Kota Bogor, Indonesia
+        """)
+
+    with col2:
+        st.markdown("""
+        ## Rusdi Ahmad  
+        **Guru Matematika | AI & Machine Learning Enthusiast | Data Educator**
+        
+        > *“Menjadikan AI dan analisis data sebagai alat bantu utama untuk meningkatkan mutu pendidikan dan pengambilan keputusan akademik.”*
+        """)
+        st.write("---")
+
+        # Pendidikan
+        st.markdown("### 🎓 Pendidikan")
+        st.markdown("""
+        - **S2 Matematika — Universitas Andalas (UNAND)**  
+          *Fokus: Analisis dan Pendidikan Matematika. Lulus dengan penelitian di bidang pengembangan model pembelajaran berbasis konsep dan pemodelan matematis.*
+        - **S1 Pendidikan Matematika — UIN Imam Bonjol Padang**  
+          *Aktif dalam kegiatan akademik, kompetisi, dan riset pendidikan matematika.*
+        """)
+
+        st.write("---")
+
+        # Pengalaman Kerja
+        st.markdown("### 💼 Pengalaman Kerja")
+        st.markdown("""
+        - **Guru Matematika — Bimbingan Belajar Bintang Pelajar (2024–Sekarang)**  
+          Mengajar Matematika SMA (Statistika, Fungsi, Trigonometri, Vektor, dan lainnya), membimbing siswa dalam persiapan **UTBK–SNBT**, serta menjadi mentor olimpiade matematika.  
+        - **Guru Matematika — SMAN Agam Cendekia**  
+          Mengajar kurikulum nasional dengan pendekatan **kontekstual dan berbasis proyek**.  
+        - **Instruktur — Bimbel CPNS DINNDA**  
+          Melatih peserta **Tes Intelegensi Umum (TIU)** dan **Penalaran Logis**, berfokus pada strategi analitis soal numerik.  
+        - **Pembina Ekstrakurikuler Robotik & Coding (SMA)**  
+          Membimbing siswa memahami **logika pemrograman, robotika dasar, dan AI Education.**
+        """)
+
+        st.write("---")
+
+        # Prestasi
+        st.markdown("### 🏆 Prestasi & Aktivitas")
+        st.markdown("""
+        - Finalis **Olimpiade Nasional Matematika (ON MIPA) UNAND**  
+        - Juara **Kompetisi Sains Madrasah (KSM) Nasional Tingkat Universitas**  
+        - Pembina lomba matematika dan kegiatan keislaman tingkat sekolah & kota  
+        - Panitia dan analis data dalam **Program SSMPTN** sekolah  
+        """)
+
+        st.write("---")
+
+        # Skill Bar (progress)
+        st.markdown("### 🧠 Keahlian Teknis")
+        skill_cols = st.columns(2)
+        with skill_cols[0]:
+            st.write("**Python (pandas, sklearn, Streamlit)**")
+            st.progress(0.9)
+            st.write("**Data Visualization (Matplotlib, Seaborn)**")
+            st.progress(0.85)
+            st.write("**Machine Learning**")
+            st.progress(0.8)
+        with skill_cols[1]:
+            st.write("**Google Colab & Jupyter Notebook**")
+            st.progress(0.9)
+            st.write("**Excel Analytics & Dashboarding**")
+            st.progress(0.95)
+            st.write("**Database & Data Cleaning**")
+            st.progress(0.75)
+
+        st.write("---")
+
+        # Soft Skills
+        st.markdown("### 🤝 Soft Skills")
+        st.markdown("""
+        - Leadership & Mentoring  
+        - Public Speaking  
+        - Curriculum Design  
+        - Analytical Thinking  
+        - Collaborative Problem Solving
+        """)
+
+        st.write("---")
+
+        # Tombol interaktif
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.link_button("💬 Hubungi via Email", "mailto:rusdiahmad979@gmail.com")
+        with col_b:
+            st.link_button("🔗 Kunjungi LinkedIn", "https://www.linkedin.com/in/rusdi-ahmad-a2948a1a4")
+
 
 # ---------------------------
 # PROYEK SAYA
