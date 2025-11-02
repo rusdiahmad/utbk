@@ -25,6 +25,18 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 import io
 
 # ---------------------------
+# Page config / Title
+# ---------------------------
+st.set_page_config(page_title="My Portfolio: UTBK Score Prediction Dashboard",
+                   page_icon="🤖",
+                   layout="wide")
+
+st.title("🤖 My AI & ML Portfolio: UTBK Score Prediction Dashboard")
+st.markdown("""
+Aplikasi portofolio untuk Bootcamp **AI & ML** — fokus pada analisis dan prediksi nilai UTBK per subtes (TO1..TO7) berdasarkan jurusan dan fitur terkait.
+""")
+
+# ---------------------------
 # Page & style
 # ---------------------------
 st.set_page_config(page_title="UTBK Subtest Analysis & Jurusan Predictor", page_icon="🎓", layout="wide")
