@@ -31,11 +31,19 @@ st.set_page_config(
 )
 
 # Gaya singkat
-st.title("🎓 My AI & ML Portfolio: UTBK Subtest Score Analysis & Prediction Dashboard")
-st.markdown(
-    "Aplikasi portofolio (Bootcamp AI & ML) untuk **analisis** dan **prediksi** skor UTBK per subtes "
-    "(PU, PK, PPU, PBM, LIND, LING, PM, Rata-rata) berdasarkan jurusan/prodi dan fitur terkait."
-)
+# ---------------------------
+# Header profesional (tanpa kalimat tugas)
+# ---------------------------
+st.title("📈 UTBK Subtest Score Analysis & Prediction Dashboard")
+
+st.markdown("""
+Selamat datang di **Dashboard Analisis & Prediksi Nilai UTBK**,  
+sebuah aplikasi interaktif untuk menampilkan **analisis performa siswa berdasarkan nilai per subtes UTBK**  
+serta **prediksi skor akademik** berdasarkan jurusan dan variabel terkait menggunakan metode *Machine Learning*.
+
+Aplikasi ini dirancang untuk mendukung pengambilan keputusan pendidikan, evaluasi akademik, dan strategi belajar berbasis data.
+""")
+
 st.write("---")
 
 # ---------------------------
