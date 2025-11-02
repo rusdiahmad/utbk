@@ -30,93 +30,27 @@ st.set_page_config(
     layout="wide",
 )
 
-# Gaya singkat
 # ---------------------------
-# Header profesional (tanpa kalimat tugas)
+# Header profesional
 # ---------------------------
 st.title("📈 UTBK Subtest Score Analysis & Prediction Dashboard")
-
 st.markdown("""
-Selamat datang di **Dashboard Analisis & Prediksi Nilai UTBK**,  
-sebuah aplikasi interaktif untuk menampilkan **analisis performa siswa berdasarkan nilai per subtes UTBK**  
-serta **prediksi skor akademik** berdasarkan jurusan dan variabel terkait menggunakan metode *Machine Learning*.
+Dashboard ini dirancang untuk **menganalisis performa siswa berdasarkan nilai per subtes UTBK**  
+serta **memprediksi skor akademik berdasarkan jurusan dan variabel terkait** menggunakan pendekatan *Machine Learning*.  
 
-Aplikasi ini dirancang untuk mendukung pengambilan keputusan pendidikan, evaluasi akademik, dan strategi belajar berbasis data.
+Dikembangkan untuk mendukung pengambilan keputusan pendidikan, evaluasi akademik, dan strategi belajar berbasis data.
 """)
-
 st.write("---")
 
 # ---------------------------
-# Sidebar navigasi
+# Sidebar navigasi (tanpa halaman Beranda)
 # ---------------------------
 st.sidebar.header("Navigasi")
-page = st.sidebar.radio("Pilih halaman", ["Beranda", "Tentang Saya", "Proyek Saya", "Analisis & Prediksi UTBK"])
+page = st.sidebar.radio(
+    "Pilih halaman:",
+    ["Tentang Saya", "Proyek Saya", "Analisis & Prediksi UTBK"]
+)
 
-# ---------------------------
-# Utility functions
-# ---------------------------
-@st.cache_data
-def load_excel(path: str):
-    return pd.read_excel(path)
-
-def detect_subtest_columns(df: pd.DataFrame):
-    # Target subtest (expected): PU, PK, PPU, PBM, LIND, LING, PM, Rata-rata
-    expected = ["PU", "PK", "PPU", "PBM", "LIND", "LING", "PM", "Rata-rata"]
-    detected = [c for c in expected if c in df.columns]
-    # If 'Rata-rata' named differently, attempt to find close names
-    if "Rata-rata" not in detected:
-        for c in df.columns:
-            if c.strip().lower() in ["rata-rata", "rata rata", "rata2", "rata_rata", "rata"]:
-                detected.append(c)
-                break
-    return detected
-
-def encode_features(X: pd.DataFrame):
-    encoders = {}
-    X_enc = pd.DataFrame(index=X.index)
-    for col in X.columns:
-        if X[col].dtype == object or X[col].dtype.name == 'category':
-            le = LabelEncoder()
-            vals = X[col].astype(str).fillna("___NA___")
-            X_enc[col] = le.fit_transform(vals)
-            encoders[col] = le
-        else:
-            X_enc[col] = X[col].fillna(X[col].median())
-    return X_enc, encoders
-
-def transform_new(X_new: pd.DataFrame, encoders: dict, model_features: list):
-    X_t = pd.DataFrame(index=X_new.index)
-    for col in model_features:
-        if col in X_new.columns:
-            series = X_new[col]
-        else:
-            series = pd.Series([np.nan]*len(X_new), index=X_new.index)
-
-        if col in encoders:
-            le = encoders[col]
-            mapped = []
-            classes = list(map(str, le.classes_))
-            for v in series.astype(str).fillna("___NA___"):
-                if v in classes:
-                    mapped.append(int(np.where(le.classes_ == v)[0][0]))
-                else:
-                    # unseen label -> map to -1
-                    mapped.append(-1)
-            X_t[col] = mapped
-        else:
-            X_t[col] = pd.to_numeric(series, errors='coerce').fillna(np.nanmedian(np.array(series.dropna(), dtype=float)) if series.dropna().size>0 else 0)
-    return X_t
-
-# ---------------------------
-# BERANDA
-# ---------------------------
-if page == "Beranda":
-    st.header("Beranda")
-    st.write(
-        "Selamat datang — gunakan sidebar untuk masuk ke halaman 'Analisis & Prediksi UTBK' "
-        "atau melihat profil & proyek."
-    )
-    st.info("Pastikan `NILAI UTBK ANGK 4.xlsx` dan `Pas Photo.jpg` berada di root repository sebelum deploy.")
 
 # ---------------------------
 # TENTANG SAYA
