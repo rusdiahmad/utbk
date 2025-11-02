@@ -100,17 +100,40 @@ def transform_X_new(X_new: pd.DataFrame, encoders: dict, model_features: list):
     return X_t
 
 def plot_radar(values, labels, title="Radar Chart"):
+    """
+    Membuat radar chart dari daftar nilai subtest.
+    Menangani input berupa list, numpy array, atau Series.
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    # Pastikan values adalah list numerik
+    if isinstance(values, (int, float)):
+        values = [values] * len(labels)
+    elif hasattr(values, "tolist"):
+        values = values.tolist()
+    else:
+        values = list(values)
+
+    # Jika panjang tidak sama, sesuaikan
+    if len(values) != len(labels):
+        min_len = min(len(values), len(labels))
+        values = values[:min_len]
+        labels = labels[:min_len]
+
+    # Tutup lingkaran radar
     angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
-    # repeat first value to close the circle
-    values = values.tolist()
     values += values[:1]
     angles += angles[:1]
-    fig, ax = plt.subplots(figsize=(6,6), subplot_kw=dict(polar=True))
-    ax.plot(angles, values, 'o-', linewidth=2)
-    ax.fill(angles, values, alpha=0.25)
+
+    # Plot radar chart
+    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+    ax.plot(angles, values, 'o-', linewidth=2, color='steelblue')
+    ax.fill(angles, values, alpha=0.25, color='skyblue')
     ax.set_thetagrids(np.degrees(angles[:-1]), labels)
-    ax.set_title(title)
+    ax.set_title(title, fontsize=13, fontweight='bold', pad=20)
     ax.grid(True)
+
     return fig
 
 # ---------------------------
