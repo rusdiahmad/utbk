@@ -311,7 +311,7 @@ elif page == "Prediksi Jurusan":
         LING = st.number_input("LING (Literasi Bahasa Inggris)", min_value=0.0, max_value=1000.0, value=600.0)
     with col4:
         PM = st.number_input("PM (Penalaran Matematika)", min_value=0.0, max_value=1000.0, value=600.0)
-        rata = st.number_input("Rata-rata", min_value=0.0, max_value=1000.0, value=600.0)
+    
 
     # --- Tombol prediksi
     if st.button("🔍 Lihat Rekomendasi Jurusan"):
