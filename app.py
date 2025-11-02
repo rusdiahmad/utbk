@@ -159,7 +159,7 @@ if page == "Tentang Saya":
         st.markdown("- 📍 Kota Bogor, Indonesia")
     with col2:
         st.markdown("## Rusdi Ahmad")
-        st.markdown("**Guru Matematika | AI & Machine Learning Enthusiast **")
+        st.markdown("Guru Matematika | AI & Machine Learning Enthusiast ")
        
         st.write("---")
         st.markdown("### 🎓 Pendidikan")
