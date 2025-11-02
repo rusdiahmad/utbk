@@ -292,153 +292,178 @@ elif page == "Analisis UTBK":
         )
 
 # ---------------------------
-# PAGE: PREDIKSI JURUSAN
+# PAGE: PREDIKSI JURUSAN (REVISI ROBUST)
 # ---------------------------
 elif page == "Prediksi Jurusan":
     st.header("🤖 Prediksi Rumpun & Rekomendasi Jurusan dari Nilai Subtests")
     st.markdown(
-        "Masukkan nilai subtests untuk memprediksi **rumpun** dan rekomendasi jurusan/prodi. "
-        "Model dilatih pada data yang tersedia (kolom JURUSAN/PRODI dan/atau RUMPUN pada dataset)."
+        "Masukkan nilai subtests untuk memprediksi **rumpun** dan melihat rekomendasi jurusan/prodi. "
+        "Model dilatih pada data yang ada di file `NILAI UTBK ANGK 4.xlsx`."
     )
 
-    # load data (for training) - require dataset present
+    # --- Load dataset (required)
     try:
         df_all = load_excel("NILAI UTBK ANGK 4.xlsx")
     except FileNotFoundError:
-        st.error("File 'NILAI UTBK ANGK 4.xlsx' tidak ditemukan di repo. Upload file lalu kembali ke halaman ini.")
+        st.error("File 'NILAI UTBK ANGK 4.xlsx' tidak ditemukan. Upload file lalu kembali ke halaman ini.")
         st.stop()
     except Exception as e:
         st.error(f"Gagal membaca file Excel: {e}")
         st.stop()
 
+    # Normalize
     df_all.columns = [c.strip() for c in df_all.columns]
+
+    # Detect subtests
     subtests = detect_subtests(df_all)
     if not subtests:
-        st.warning("Kolom subtests tidak ditemukan.")
+        st.warning("Kolom subtests tidak ditemukan. Pastikan ada kolom: PU, PK, PPU, PBM, LIND, LING, PM, Rata-rata")
         st.stop()
 
-    # choose target: RUMPUN (preferred) and JURUSAN/PRODI as secondary
+    # Choose target: prefer RUMPUN, else use JURUSAN/PRODI as proxy
     if "RUMPUN" in df_all.columns:
-        target_rumpun = "RUMPUN"
+        target_col = "RUMPUN"
     elif "JURUSAN/PRODI" in df_all.columns:
-        # try to derive RUMPUN from JURUSAN/PRODI if not present: for now use JURUSAN/PRODI as rumpun proxy
-        target_rumpun = "JURUSAN/PRODI"
+        target_col = "JURUSAN/PRODI"
+        st.info("Kolom 'RUMPUN' tidak ditemukan; menggunakan 'JURUSAN/PRODI' sebagai target proxy.")
     else:
-        st.error("Tidak ada kolom 'RUMPUN' atau 'JURUSAN/PRODI' untuk dijadikan target klasifikasi.")
+        st.error("Tidak ditemukan kolom target 'RUMPUN' atau 'JURUSAN/PRODI' dalam dataset.")
         st.stop()
 
-    # Prepare training data: drop rows with missing subtests or missing target
-    df_train = df_all.dropna(subset=subtests + [target_rumpun]).reset_index(drop=True)
-    if df_train.shape[0] < 30:
-        st.warning("Data latih terbatas (<30 baris). Hasil klasifikasi mungkin kurang stabil.")
+    # --- Prepare training data
+    df_train = df_all.dropna(subset=subtests + [target_col]).reset_index(drop=True)
+    n_rows = df_train.shape[0]
+    if n_rows == 0:
+        st.error("Tidak ada baris lengkap (subtests + target). Periksa dataset.")
+        st.stop()
+    if n_rows < 30:
+        st.warning(f"Data latih kecil ({n_rows} baris). Model mungkin kurang stabil, namun tetap akan dilatih.")
 
+    # X: numeric subtests only
     X = df_train[subtests].copy()
-    # fill numeric
     for c in X.columns:
         X[c] = pd.to_numeric(X[c], errors='coerce').fillna(X[c].median())
 
-    y_rumpun = df_train[target_rumpun].astype(str)
-
-    # encode target rumpun
+    # y: target (rumpun / jurusan)
+    y_raw = df_train[target_col].astype(str).fillna("Unknown")
     le_rumpun = LabelEncoder()
-    y_rumpun_enc = le_rumpun.fit_transform(y_rumpun)
+    y = le_rumpun.fit_transform(y_raw)
 
-    # train/test split
-    X_train, X_test, y_train, y_test = train_test_split(X, y_rumpun_enc, test_size=0.2, random_state=42, stratify=y_rumpun_enc if len(np.unique(y_rumpun_enc))>1 else None)
+    # if only one class present, classifier won't work well — guard
+    if len(np.unique(y)) < 2:
+        st.error("Hanya satu kelas rumpun ditemukan di data. Perlu setidaknya 2 rumpun berbeda untuk melakukan klasifikasi.")
+        st.stop()
 
-    # model training (classifier)
+    # train/test split (try stratify if possible)
+    try:
+        stratify = y if len(np.unique(y)) > 1 else None
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=stratify)
+    except Exception:
+        # fallback no stratify
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # train classifier
     clf = RandomForestClassifier(n_estimators=200, random_state=42)
-    clf.fit(X_train, y_train)
+    with st.spinner("Melatih model classifier..."):
+        clf.fit(X_train, y_train)
+
+    # evaluate
     y_pred = clf.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
-
-    st.subheader("Evaluasi Model Rumpun")
-    st.metric("Accuracy (test set)", f"{acc:.3f}")
+    st.subheader("Evaluasi Model (Rumpun)")
+    st.metric("Akurasi (test set)", f"{acc:.3f}")
     st.text("Classification report:")
     st.text(classification_report(y_test, y_pred, target_names=le_rumpun.classes_, zero_division=0))
 
-    # confusion matrix (small)
-    cm = confusion_matrix(y_test, y_pred)
-    fig_cm, ax_cm = plt.subplots(figsize=(6,4))
-    sns.heatmap(cm, annot=True, fmt="d", xticklabels=le_rumpun.classes_, yticklabels=le_rumpun.classes_, cmap="Blues", ax=ax_cm)
-    ax_cm.set_xlabel("Predicted")
-    ax_cm.set_ylabel("Actual")
-    st.pyplot(fig_cm)
+    # confusion matrix
+    try:
+        cm = confusion_matrix(y_test, y_pred)
+        fig_cm, ax_cm = plt.subplots(figsize=(6, 4))
+        sns.heatmap(cm, annot=True, fmt="d", xticklabels=le_rumpun.classes_, yticklabels=le_rumpun.classes_, cmap="Blues", ax=ax_cm)
+        ax_cm.set_xlabel("Predicted")
+        ax_cm.set_ylabel("Actual")
+        st.pyplot(fig_cm)
+    except Exception:
+        st.info("Confusion matrix skipped (masalah plotting).")
 
-    # also prepare jurusan recommendations: frequency table per rumpun
-    if "JURUSAN/PRODI" in df_train.columns and "RUMPUN" in df_train.columns:
-        # mapping rumpun -> top jurusan
-        top_jurusan_by_rumpun = df_train.groupby("RUMPUN")["JURUSAN/PRODI"].apply(lambda s: s.value_counts().index.tolist()).to_dict()
-    else:
-        top_jurusan_by_rumpun = {}
+    # Prepare top jurusan per rumpun mapping (if available)
+    top_jurusan_by_rumpun = {}
+    if "RUMPUN" in df_train.columns and "JURUSAN/PRODI" in df_train.columns:
+        # list jurusan ordered by frequency per rumpun
+        tmp = df_train.groupby("RUMPUN")["JURUSAN/PRODI"].apply(lambda s: s.value_counts().index.tolist())
+        top_jurusan_by_rumpun = tmp.to_dict()
 
+    # --- Prediction UI (manual)
     st.write("---")
-    st.subheader("Input nilai subtests (untuk prediksi)")
-    # manual input form
-    with st.form("prediksi_form"):
+    st.subheader("Input nilai subtests untuk prediksi rumpun & rekomendasi jurusan")
+    with st.form("pred_form"):
         cols = st.columns(4)
         inputs = {}
-        for i, sub in enumerate(subtests):
+        for i, s in enumerate(subtests):
             c = cols[i % 4]
-            default = float(df_all[sub].dropna().median()) if sub in df_all.columns else 50.0
-            inputs[sub] = c.number_input(f"{sub}", value=float(default), min_value=0.0, max_value=1000.0, step=1.0)
-        submitted = st.form_submit_button("🔮 Prediksi Rumpun & Rekomendasi Jurusan")
-    if submitted:
-        X_new = pd.DataFrame([inputs])
-        # process
-        X_new_proc = X_new.copy()
-        for c in X_new_proc.columns:
-            X_new_proc[c] = pd.to_numeric(X_new_proc[c], errors='coerce').fillna(X[c].median() if c in X.columns else 0)
-        # predict rumpun
-        pred_code = clf.predict(X_new_proc)[0]
-        pred_rumpun = le_rumpun.inverse_transform([pred_code])[0]
-        st.success(f"Prediksi Rumpun: **{pred_rumpun}**")
+            default_val = float(df_all[s].dropna().median()) if s in df_all.columns and not df_all[s].dropna().empty else 50.0
+            inputs[s] = c.number_input(f"{s}", value=default_val, min_value=0.0, max_value=1000.0, step=1.0)
+        submit = st.form_submit_button("🔮 Prediksi")
 
-        # probability for all rumpun
-        probs = clf.predict_proba(X_new_proc)[0]
-        prob_df = pd.DataFrame({"Rumpun": le_rumpun.classes_, "Prob": probs}).sort_values("Prob", ascending=False)
-        st.subheader("Probabilitas Rumpun (desc)")
-        st.dataframe(prob_df)
+    if submit:
+        try:
+            X_new = pd.DataFrame([inputs])
+            # ensure numeric and fill medians from training X
+            for c in X_new.columns:
+                X_new[c] = pd.to_numeric(X_new[c], errors='coerce').fillna(X[c].median() if c in X.columns else 0)
 
-        # recommend top jurusan (by rumpun mapping or simple heuristic)
-        st.subheader("Rekomendasi Jurusan (Top 3)")
-        recommendations = []
-        if pred_rumpun in top_jurusan_by_rumpun and top_jurusan_by_rumpun[pred_rumpun]:
-            # take top 3 frequent jurusan for that rumpun
-            recs = top_jurusan_by_rumpun[pred_rumpun][:3]
-            recommendations = recs
-        else:
-            # fallback: find nearest students by euclidean distance in subtest space and pick their jurusan
-            df_candidates = df_train.copy()
-            dists = np.linalg.norm(df_candidates[subtests].fillna(0).values - X_new_proc.values, axis=1)
-            df_candidates["dist"] = dists
-            nearest = df_candidates.sort_values("dist").head(10)
-            if "JURUSAN/PRODI" in nearest.columns:
-                recommendations = nearest["JURUSAN/PRODI"].value_counts().index.tolist()[:3]
+            # predict rumpun
+            pred_code = clf.predict(X_new)[0]
+            pred_rumpun = le_rumpun.inverse_transform([pred_code])[0]
+            st.success(f"Prediksi Rumpun: **{pred_rumpun}**")
+
+            # probabilities (if available)
+            if hasattr(clf, "predict_proba"):
+                probs = clf.predict_proba(X_new)[0]
+                prob_df = pd.DataFrame({"Rumpun": le_rumpun.classes_, "Prob": probs}).sort_values("Prob", ascending=False)
+                st.subheader("Probabilitas Rumpun (desc)")
+                st.dataframe(prob_df)
             else:
-                recommendations = ["(Data jurusan tidak tersedia)"]
+                st.info("Model tidak menyediakan probabilitas (predict_proba).")
 
-        # show recommendations
-        for i, r in enumerate(recommendations, start=1):
-            st.markdown(f"{i}. **{r}**")
+            # Recommend top-3 jurusan:
+            recommendations = []
+            if pred_rumpun in top_jurusan_by_rumpun and top_jurusan_by_rumpun[pred_rumpun]:
+                recommendations = top_jurusan_by_rumpun[pred_rumpun][:3]
+            else:
+                # fallback: nearest neighbors in training set
+                try:
+                    X_vals = X.values
+                    new_vals = X_new.values
+                    dists = np.linalg.norm(X_vals - new_vals, axis=1)
+                    nearest_idx = np.argsort(dists)[:20]
+                    nearest = df_train.iloc[nearest_idx]
+                    if "JURUSAN/PRODI" in nearest.columns:
+                        recommendations = nearest["JURUSAN/PRODI"].value_counts().index.tolist()[:3]
+                except Exception:
+                    recommendations = ["(Rekomendasi tidak tersedia)"]
 
-        # radar chart for predicted rumpun average profile
-        st.write("---")
-        if pred_rumpun in top_jurusan_by_rumpun or ("RUMPUN" in df_all.columns):
-            # compute average profile for predicted rumpun if available
-            if "RUMPUN" in df_all.columns:
+            st.subheader("Rekomendasi Jurusan (Top 3)")
+            if recommendations:
+                for i, r in enumerate(recommendations, start=1):
+                    st.markdown(f"{i}. **{r}**")
+            else:
+                st.write("Tidak ada rekomendasi jurusan yang tersedia.")
+
+            # Radar chart: show average profile of predicted rumpun if available
+            if "RUMPUN" in df_all.columns and pred_rumpun in df_all["RUMPUN"].unique():
                 avg_profile = df_all[df_all["RUMPUN"] == pred_rumpun][subtests].mean().fillna(0)
-                fig_r = plot_radar(avg_profile.values, subtests, title=f"Profil Rata-rata Subtest - {pred_rumpun}")
-                st.pyplot(fig_r)
-        # allow download of prediction result
-        out = {"Predicted_Rumpun": pred_rumpun}
-        out.update({k: v for k, v in inputs.items()})
-        out_df = pd.DataFrame([out])
-        csv = out_df.to_csv(index=False).encode("utf-8")
-        st.download_button("💾 Download Hasil Prediksi (CSV)", data=csv, file_name="prediksi_rumpun.csv", mime="text/csv")
+                st.subheader(f"Profil rata-rata subtest untuk rumpun: {pred_rumpun}")
+                fig_radar = plot_radar(avg_profile.values, subtests, title=f"Profil {pred_rumpun}")
+                st.pyplot(fig_radar)
 
-    st.write("---")
-    st.markdown(
-        "Catatan: Model prediksi bersifat proof-of-concept. Untuk produksi, disarankan menambah data, melakukan feature engineering, cross-validation, dan hyperparameter tuning."
-    )
+            # package output for download
+            out = {"Predicted_Rumpun": pred_rumpun}
+            out.update(inputs)
+            out_df = pd.DataFrame([out])
+            csv = out_df.to_csv(index=False).encode("utf-8")
+            st.download_button("💾 Download Hasil Prediksi (CSV)", data=csv, file_name="prediksi_rumpun.csv", mime="text/csv")
+        except Exception as e:
+            st.error(f"Gagal melakukan prediksi: {e}")
+            st.exception(e)
 
