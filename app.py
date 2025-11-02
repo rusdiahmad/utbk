@@ -143,8 +143,8 @@ if page == "Tentang Saya":
         st.write("---")
         st.markdown("### 💼 Pengalaman Kerja")
         st.markdown(
-            "- **Guru Matematika — Bimbingan Belajar Bintang Pelajar (2024–Sekarang)**\n"
-            "- **Guru Matematika — SMAN Agam Cendekia**\n"
+            "- **Guru Matematika — SMA BPIBS**\n"
+            "- **Guru Informatika — SMAN Agam Cendekia**\n"
             "- **Instruktur — Bimbel CPNS DINNDA**\n"
             "- **Pembina Ekstrakurikuler Robotik & Coding (SMA)**"
         )
@@ -357,7 +357,7 @@ elif page == "Prediksi Jurusan":
         )
 
         # Radar Chart visualisasi
-        subtests = ["PU", "PK", "PPU", "PBM", "LIND", "LING", "PM", "Rata-rata"]
-        values = [PU, PK, PPU, PBM, LIND, LING, PM, rata]
+        subtests = ["PU", "PK", "PPU", "PBM", "LIND", "LING", "PM"]
+        values = [PU, PK, PPU, PBM, LIND, LING, PM]
         fig = plot_radar(values, subtests, title="Profil Nilai Subtes Kamu")
         st.pyplot(fig)
