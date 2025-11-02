@@ -238,6 +238,8 @@ elif page == "Analisis UTBK":
     # Load dataset otomatis dari repo GitHub
     try:
         df = load_excel("NILAI UTBK ANGK 4.xlsx")
+        st.write("### Cuplikan Data")
+        st.dataframe(df.head())
         st.success("✅ Dataset UTBK berhasil dimuat dari repository.")
     except FileNotFoundError:
         st.error("❌ Dataset 'NILAI UTBK ANGK 4.xlsx' tidak ditemukan di repository.")
