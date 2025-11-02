@@ -292,178 +292,76 @@ elif page == "Analisis UTBK":
         )
 
 # ---------------------------
-# PAGE: PREDIKSI JURUSAN (REVISI ROBUST)
+# PAGE: PREDIKSI JURUSAN (VERSI SIMPLIFIKASI PROFESIONAL)
 # ---------------------------
 elif page == "Prediksi Jurusan":
-    st.header("🤖 Prediksi Rumpun & Rekomendasi Jurusan dari Nilai Subtests")
+    st.header("🎯 Rekomendasi Jurusan Berdasarkan Nilai Subtes UTBK")
     st.markdown(
-        "Masukkan nilai subtests untuk memprediksi **rumpun** dan melihat rekomendasi jurusan/prodi. "
-        "Model dilatih pada data yang ada di file `NILAI UTBK ANGK 4.xlsx`."
+        "Masukkan nilai per subtes (PU, PK, PPU, PBM, LIND, LING, PM, dan Rata-rata) untuk mengetahui "
+        "jurusan atau rumpun yang paling sesuai dengan profil kemampuanmu."
     )
 
-    # --- Load dataset (required)
-    try:
-        df_all = load_excel("NILAI UTBK ANGK 4.xlsx")
-    except FileNotFoundError:
-        st.error("File 'NILAI UTBK ANGK 4.xlsx' tidak ditemukan. Upload file lalu kembali ke halaman ini.")
-        st.stop()
-    except Exception as e:
-        st.error(f"Gagal membaca file Excel: {e}")
-        st.stop()
+    # --- Input nilai subtes
+    st.write("### 🧮 Input Nilai Subtes")
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        PU = st.number_input("PU (Penalaran Umum)", min_value=0.0, max_value=1000.0, value=600.0)
+        PK = st.number_input("PK (Pengetahuan Kuantitatif)", min_value=0.0, max_value=1000.0, value=600.0)
+    with col2:
+        PPU = st.number_input("PPU (Pemahaman Bacaan & Menulis)", min_value=0.0, max_value=1000.0, value=600.0)
+        PBM = st.number_input("PBM (Pengetahuan & Pemahaman Umum)", min_value=0.0, max_value=1000.0, value=600.0)
+    with col3:
+        LIND = st.number_input("LIND (Literasi Bahasa Indonesia)", min_value=0.0, max_value=1000.0, value=600.0)
+        LING = st.number_input("LING (Literasi Bahasa Inggris)", min_value=0.0, max_value=1000.0, value=600.0)
+    with col4:
+        PM = st.number_input("PM (Penalaran Matematika)", min_value=0.0, max_value=1000.0, value=600.0)
+        rata = st.number_input("Rata-rata", min_value=0.0, max_value=1000.0, value=600.0)
 
-    # Normalize
-    df_all.columns = [c.strip() for c in df_all.columns]
+    # --- Tombol prediksi
+    if st.button("🔍 Lihat Rekomendasi Jurusan"):
+        # Analisis berbasis aturan sederhana
+        hasil = []
 
-    # Detect subtests
-    subtests = detect_subtests(df_all)
-    if not subtests:
-        st.warning("Kolom subtests tidak ditemukan. Pastikan ada kolom: PU, PK, PPU, PBM, LIND, LING, PM, Rata-rata")
-        st.stop()
+        # Logika dasar berbasis pola nilai subtes
+        if PM > 650 and PK > 650:
+            hasil.append("💻 Teknik Informatika / Ilmu Komputer")
+            hasil.append("⚙️ Teknik Industri / Elektro / Mesin")
+            hasil.append("🧮 Matematika / Statistika / Fisika")
+        elif PPU > 650 and PBM > 650:
+            hasil.append("📚 Hukum / Ilmu Sosial / Komunikasi")
+            hasil.append("🏛️ Ilmu Pemerintahan / Hubungan Internasional")
+            hasil.append("🧠 Psikologi / Pendidikan")
+        elif LIND > 650 and LING > 650:
+            hasil.append("🗣️ Sastra Inggris / Pendidikan Bahasa")
+            hasil.append("📖 Jurnalistik / Ilmu Komunikasi")
+            hasil.append("🌏 Bahasa dan Kebudayaan / Linguistik")
+        elif PK > 650 and PBM > 650:
+            hasil.append("📊 Ekonomi / Manajemen / Akuntansi")
+            hasil.append("💼 Administrasi Bisnis / Perbankan")
+            hasil.append("🏦 Keuangan / Aktuaria")
+        elif PM < 550 and PPU > 650:
+            hasil.append("🧠 Psikologi / Ilmu Pendidikan / Bimbingan Konseling")
+            hasil.append("🎨 Desain Komunikasi Visual / Seni")
+            hasil.append("📚 Sastra dan Bahasa")
+        else:
+            hasil.append("📘 Multidisiplin / Jurusan Umum")
+            hasil.append("📈 Bisnis dan Manajemen")
+            hasil.append("💡 Pendidikan atau Sosial Humaniora")
 
-    # Choose target: prefer RUMPUN, else use JURUSAN/PRODI as proxy
-    if "RUMPUN" in df_all.columns:
-        target_col = "RUMPUN"
-    elif "JURUSAN/PRODI" in df_all.columns:
-        target_col = "JURUSAN/PRODI"
-        st.info("Kolom 'RUMPUN' tidak ditemukan; menggunakan 'JURUSAN/PRODI' sebagai target proxy.")
-    else:
-        st.error("Tidak ditemukan kolom target 'RUMPUN' atau 'JURUSAN/PRODI' dalam dataset.")
-        st.stop()
+        # --- Output hasil rekomendasi
+        st.success("Berdasarkan profil nilai kamu, jurusan yang paling sesuai adalah:")
+        for i, j in enumerate(hasil, start=1):
+            st.markdown(f"**{i}. {j}**")
 
-    # --- Prepare training data
-    df_train = df_all.dropna(subset=subtests + [target_col]).reset_index(drop=True)
-    n_rows = df_train.shape[0]
-    if n_rows == 0:
-        st.error("Tidak ada baris lengkap (subtests + target). Periksa dataset.")
-        st.stop()
-    if n_rows < 30:
-        st.warning(f"Data latih kecil ({n_rows} baris). Model mungkin kurang stabil, namun tetap akan dilatih.")
+        # Tambahan insight
+        st.write("---")
+        st.info(
+            "💡 *Keterangan:* Rekomendasi ini bersifat orientatif berdasarkan pola nilai subtes. "
+            "Untuk hasil lebih akurat, sebaiknya dipadukan dengan minat dan rencana karier pribadi."
+        )
 
-    # X: numeric subtests only
-    X = df_train[subtests].copy()
-    for c in X.columns:
-        X[c] = pd.to_numeric(X[c], errors='coerce').fillna(X[c].median())
-
-    # y: target (rumpun / jurusan)
-    y_raw = df_train[target_col].astype(str).fillna("Unknown")
-    le_rumpun = LabelEncoder()
-    y = le_rumpun.fit_transform(y_raw)
-
-    # if only one class present, classifier won't work well — guard
-    if len(np.unique(y)) < 2:
-        st.error("Hanya satu kelas rumpun ditemukan di data. Perlu setidaknya 2 rumpun berbeda untuk melakukan klasifikasi.")
-        st.stop()
-
-    # train/test split (try stratify if possible)
-    try:
-        stratify = y if len(np.unique(y)) > 1 else None
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=stratify)
-    except Exception:
-        # fallback no stratify
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    # train classifier
-    clf = RandomForestClassifier(n_estimators=200, random_state=42)
-    with st.spinner("Melatih model classifier..."):
-        clf.fit(X_train, y_train)
-
-    # evaluate
-    y_pred = clf.predict(X_test)
-    acc = accuracy_score(y_test, y_pred)
-    st.subheader("Evaluasi Model (Rumpun)")
-    st.metric("Akurasi (test set)", f"{acc:.3f}")
-    st.text("Classification report:")
-    st.text(classification_report(y_test, y_pred, target_names=le_rumpun.classes_, zero_division=0))
-
-    # confusion matrix
-    try:
-        cm = confusion_matrix(y_test, y_pred)
-        fig_cm, ax_cm = plt.subplots(figsize=(6, 4))
-        sns.heatmap(cm, annot=True, fmt="d", xticklabels=le_rumpun.classes_, yticklabels=le_rumpun.classes_, cmap="Blues", ax=ax_cm)
-        ax_cm.set_xlabel("Predicted")
-        ax_cm.set_ylabel("Actual")
-        st.pyplot(fig_cm)
-    except Exception:
-        st.info("Confusion matrix skipped (masalah plotting).")
-
-    # Prepare top jurusan per rumpun mapping (if available)
-    top_jurusan_by_rumpun = {}
-    if "RUMPUN" in df_train.columns and "JURUSAN/PRODI" in df_train.columns:
-        # list jurusan ordered by frequency per rumpun
-        tmp = df_train.groupby("RUMPUN")["JURUSAN/PRODI"].apply(lambda s: s.value_counts().index.tolist())
-        top_jurusan_by_rumpun = tmp.to_dict()
-
-    # --- Prediction UI (manual)
-    st.write("---")
-    st.subheader("Input nilai subtests untuk prediksi rumpun & rekomendasi jurusan")
-    with st.form("pred_form"):
-        cols = st.columns(4)
-        inputs = {}
-        for i, s in enumerate(subtests):
-            c = cols[i % 4]
-            default_val = float(df_all[s].dropna().median()) if s in df_all.columns and not df_all[s].dropna().empty else 50.0
-            inputs[s] = c.number_input(f"{s}", value=default_val, min_value=0.0, max_value=1000.0, step=1.0)
-        submit = st.form_submit_button("🔮 Prediksi")
-
-    if submit:
-        try:
-            X_new = pd.DataFrame([inputs])
-            # ensure numeric and fill medians from training X
-            for c in X_new.columns:
-                X_new[c] = pd.to_numeric(X_new[c], errors='coerce').fillna(X[c].median() if c in X.columns else 0)
-
-            # predict rumpun
-            pred_code = clf.predict(X_new)[0]
-            pred_rumpun = le_rumpun.inverse_transform([pred_code])[0]
-            st.success(f"Prediksi Rumpun: **{pred_rumpun}**")
-
-            # probabilities (if available)
-            if hasattr(clf, "predict_proba"):
-                probs = clf.predict_proba(X_new)[0]
-                prob_df = pd.DataFrame({"Rumpun": le_rumpun.classes_, "Prob": probs}).sort_values("Prob", ascending=False)
-                st.subheader("Probabilitas Rumpun (desc)")
-                st.dataframe(prob_df)
-            else:
-                st.info("Model tidak menyediakan probabilitas (predict_proba).")
-
-            # Recommend top-3 jurusan:
-            recommendations = []
-            if pred_rumpun in top_jurusan_by_rumpun and top_jurusan_by_rumpun[pred_rumpun]:
-                recommendations = top_jurusan_by_rumpun[pred_rumpun][:3]
-            else:
-                # fallback: nearest neighbors in training set
-                try:
-                    X_vals = X.values
-                    new_vals = X_new.values
-                    dists = np.linalg.norm(X_vals - new_vals, axis=1)
-                    nearest_idx = np.argsort(dists)[:20]
-                    nearest = df_train.iloc[nearest_idx]
-                    if "JURUSAN/PRODI" in nearest.columns:
-                        recommendations = nearest["JURUSAN/PRODI"].value_counts().index.tolist()[:3]
-                except Exception:
-                    recommendations = ["(Rekomendasi tidak tersedia)"]
-
-            st.subheader("Rekomendasi Jurusan (Top 3)")
-            if recommendations:
-                for i, r in enumerate(recommendations, start=1):
-                    st.markdown(f"{i}. **{r}**")
-            else:
-                st.write("Tidak ada rekomendasi jurusan yang tersedia.")
-
-            # Radar chart: show average profile of predicted rumpun if available
-            if "RUMPUN" in df_all.columns and pred_rumpun in df_all["RUMPUN"].unique():
-                avg_profile = df_all[df_all["RUMPUN"] == pred_rumpun][subtests].mean().fillna(0)
-                st.subheader(f"Profil rata-rata subtest untuk rumpun: {pred_rumpun}")
-                fig_radar = plot_radar(avg_profile.values, subtests, title=f"Profil {pred_rumpun}")
-                st.pyplot(fig_radar)
-
-            # package output for download
-            out = {"Predicted_Rumpun": pred_rumpun}
-            out.update(inputs)
-            out_df = pd.DataFrame([out])
-            csv = out_df.to_csv(index=False).encode("utf-8")
-            st.download_button("💾 Download Hasil Prediksi (CSV)", data=csv, file_name="prediksi_rumpun.csv", mime="text/csv")
-        except Exception as e:
-            st.error(f"Gagal melakukan prediksi: {e}")
-            st.exception(e)
-
+        # Radar Chart visualisasi
+        subtests = ["PU", "PK", "PPU", "PBM", "LIND", "LING", "PM", "Rata-rata"]
+        values = [PU, PK, PPU, PBM, LIND, LING, PM, rata]
+        fig = plot_radar(values, subtests, title="Profil Nilai Subtes Kamu")
+        st.pyplot(fig)
