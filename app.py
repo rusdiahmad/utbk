@@ -203,93 +203,89 @@ elif page == "Proyek Saya":
         st.markdown("**Teknologi:** pandas, Prophet/ARIMA (opsional), Streamlit")
 
 # ---------------------------
-# PAGE: ANALISIS UTBK
+# PAGE: ANALISIS UTBK (VERSI PROFESIONAL)
 # ---------------------------
 elif page == "Analisis UTBK":
-    st.header("📊 Analisis Nilai Per-Subtest UTBK")
+    st.header("📊 Analisis Nilai Subtes UTBK")
     st.markdown(
-        "Halaman ini menampilkan analisis hubungan antar nilai sub-test (PU, PK, PPU, PBM, LIND, LING, PM) "
-        "dan bagaimana pola nilai tersebut berkorelasi dengan rumpun/jurusan."
+        "Analisis ini menampilkan gambaran umum performa siswa berdasarkan nilai subtes "
+        "(PU, PK, PPU, PBM, LIND, LING, PM, dan Rata-rata), serta kecenderungan rumpun atau jurusan yang sesuai."
     )
-    # load data
-    upload = st.file_uploader("Upload file Excel UTBK (.xlsx) — atau kosongkan untuk baca dari repo", type=["xlsx"])
-    if upload is None:
-        try:
-            df = load_excel("NILAI UTBK ANGK 4.xlsx")
-            st.success("Dataset dimuat dari repository.")
-        except FileNotFoundError:
-            st.info("File 'NILAI UTBK ANGK 4.xlsx' tidak ditemukan di repo. Silakan upload.")
-            st.stop()
-        except Exception as e:
-            st.error(f"Gagal membaca file Excel: {e}")
-            st.stop()
-    else:
-        try:
-            df = pd.read_excel(upload)
-            st.success("Dataset berhasil di-upload.")
-        except Exception as e:
-            st.error(f"Gagal membaca file upload: {e}")
-            st.stop()
 
-    df.columns = [c.strip() for c in df.columns]
-
-    subtests = detect_subtests(df)
-    if not subtests:
-        st.warning("Kolom subtests (PU, PK, PPU, PBM, LIND, LING, PM, Rata-rata) tidak ditemukan.")
+    # Load dataset otomatis dari repo GitHub
+    try:
+        df = load_excel("NILAI UTBK ANGK 4.xlsx")
+        st.success("✅ Dataset UTBK berhasil dimuat dari repository.")
+    except FileNotFoundError:
+        st.error("❌ Dataset 'NILAI UTBK ANGK 4.xlsx' tidak ditemukan di repository.")
+        st.stop()
+    except Exception as e:
+        st.error(f"Gagal membaca dataset: {e}")
         st.stop()
 
-    st.subheader("Statistik Deskriptif Subtests")
-    st.dataframe(df[subtests].describe().T)
+    # Bersihkan nama kolom
+    df.columns = [c.strip() for c in df.columns]
 
-    st.subheader("Distribusi Nilai")
-    sel = st.selectbox("Pilih subtest untuk visualisasi", subtests)
-    fig, axs = plt.subplots(1,2, figsize=(12,4))
-    sns.histplot(df[sel].dropna(), kde=True, ax=axs[0])
-    axs[0].set_title(f"Distribusi {sel}")
-    sns.boxplot(x=df[sel].dropna(), ax=axs[1])
-    axs[1].set_title(f"Boxplot {sel}")
+    # Deteksi kolom subtes
+    subtests = detect_subtests(df)
+    if not subtests:
+        st.warning("Kolom nilai subtes tidak ditemukan dalam dataset.")
+        st.stop()
+
+    # --- Statistik Deskriptif
+    st.subheader("📈 Statistik Deskriptif Subtes")
+    st.dataframe(df[subtests].describe().T.style.format("{:.2f}"))
+
+    # --- Visualisasi distribusi
+    st.subheader("📊 Distribusi Nilai Subtes")
+    selected = st.selectbox("Pilih subtes untuk visualisasi:", subtests)
+    fig, axs = plt.subplots(1, 2, figsize=(12, 4))
+    sns.histplot(df[selected].dropna(), kde=True, ax=axs[0], color="steelblue")
+    axs[0].set_title(f"Distribusi Nilai {selected}")
+    sns.boxplot(x=df[selected].dropna(), ax=axs[1], color="lightblue")
+    axs[1].set_title(f"Boxplot Nilai {selected}")
     st.pyplot(fig)
 
-    st.subheader("Korelasi Antar Subtest")
-    fig_corr, ax_corr = plt.subplots(figsize=(8,6))
-    sns.heatmap(df[subtests].corr(), annot=True, cmap="vlag", center=0, ax=ax_corr)
+    # --- Korelasi antar subtes
+    st.subheader("🔗 Korelasi Antar Subtes")
+    fig_corr, ax_corr = plt.subplots(figsize=(8, 6))
+    sns.heatmap(df[subtests].corr(), annot=True, cmap="coolwarm", center=0, ax=ax_corr)
+    ax_corr.set_title("Matriks Korelasi Antar Subtes")
     st.pyplot(fig_corr)
 
-    # relationship to rumpun
-    st.subheader("Analisis Rata-rata Nilai per Rumpun / Jurusan")
-    group_col = None
+    # --- Analisis berdasarkan rumpun atau jurusan
+    st.subheader("🏫 Analisis Berdasarkan Rumpun / Jurusan")
     if "RUMPUN" in df.columns:
         group_col = "RUMPUN"
     elif "JURUSAN/PRODI" in df.columns:
         group_col = "JURUSAN/PRODI"
     else:
         st.info("Kolom 'RUMPUN' atau 'JURUSAN/PRODI' tidak ditemukan dalam dataset.")
-    if group_col:
-        top_n = st.slider("Top N rumpun/jurusan tampilkan (berdasarkan jumlah siswa)", 2, 10, 5)
-        counts = df[group_col].value_counts().head(top_n)
-        st.markdown("Jumlah siswa per group (top)")
-        st.bar_chart(counts)
+        st.stop()
 
-        mean_by_group = df.groupby(group_col)[subtests].mean().reset_index()
-        # show top groups
-        st.markdown("Rata-rata nilai per subtest per group (top groups)")
-        display = mean_by_group.set_index(group_col).loc[counts.index]
-        st.dataframe(display)
+    top_n = st.slider("Tampilkan top N kategori:", 2, 10, 5)
+    top_groups = df[group_col].value_counts().head(top_n).index
+    mean_by_group = df.groupby(group_col)[subtests].mean().loc[top_groups]
 
-        # radar chart for selected group
-        st.subheader("Radar Chart: Profil Subtest per Group")
-        sel_group = st.selectbox("Pilih group untuk radar chart", options=display.index.tolist())
-        vals = display.loc[sel_group].values
-        fig_radar = plot_radar(vals, subtests, title=f"Profil Subtest: {sel_group}")
-        st.pyplot(fig_radar)
+    st.write("### 📊 Rata-rata Nilai per Subtes (Top Rumpun/Jurusan)")
+    st.dataframe(mean_by_group.style.format("{:.1f}"))
 
-        # Provide simple rule-based insight example
-        st.markdown("**Insight contoh (rule-based)**")
-        st.write(
-            "- Jika **PM & PK** rata-rata tinggi → kecenderungan **MIPA / Teknik**.\n"
-            "- Jika **PPU & PBM** tinggi → kecenderungan **Soshum / Humaniora**.\n"
-            "- Jika **LIND / LING** kuat → nilai bahasa / communicative skills lebih baik (cocok prodi berbahasa).\n"
-        )
+    # Radar chart untuk profil subtes
+    st.subheader("📡 Visualisasi Profil Subtes per Rumpun/Jurusan")
+    selected_group = st.selectbox("Pilih kategori untuk ditampilkan:", mean_by_group.index.tolist())
+    values = mean_by_group.loc[selected_group].values
+    fig_radar = plot_radar(values, subtests, title=f"Profil Nilai Subtes: {selected_group}")
+    st.pyplot(fig_radar)
+
+    # --- Insight sederhana berbasis pola nilai
+    st.write("---")
+    st.markdown("### 💡 Insight Pola Nilai dan Kecenderungan Rumpun")
+    st.info(
+        "- Nilai **PM & PK tinggi** → cenderung cocok untuk rumpun **MIPA / Teknik**.\n"
+        "- Nilai **PPU & PBM tinggi** → cenderung cocok untuk **Soshum / Humaniora**.\n"
+        "- Nilai **LIND & LING tinggi** → unggul dalam **Bahasa / Komunikasi**.\n"
+        "- Nilai **Rata-rata tinggi di semua aspek** → potensi lintas rumpun / multidisiplin."
+    )
 
 # ---------------------------
 # PAGE: PREDIKSI JURUSAN (VERSI SIMPLIFIKASI PROFESIONAL)
