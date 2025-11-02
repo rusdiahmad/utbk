@@ -30,13 +30,7 @@ import io
 st.set_page_config(page_title="UTBK Subtest Analysis & Jurusan Predictor", page_icon="🎓", layout="wide")
 sns.set_style("whitegrid")
 
-# Header (professional)
-st.title("📈 UTBK Subtest Analysis & Jurusan Prediction Dashboard")
-st.markdown(
-    "Dashboard profesional untuk menganalisis nilai per-subtes UTBK dan merekomendasikan *rumpun* serta "
-    "jurusan/prodi yang paling cocok berdasarkan pola nilai sub-test (PU, PK, PPU, PBM, LIND, LING, PM)."
-)
-st.write("---")
+
 
 # Sidebar navigation
 st.sidebar.header("Navigasi")
