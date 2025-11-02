@@ -33,7 +33,7 @@ st.set_page_config(page_title="My Portfolio: UTBK Score Prediction Dashboard",
 
 st.title("🤖 My AI & ML Portfolio: UTBK Score Prediction Dashboard")
 st.markdown("""
-Aplikasi portofolio untuk Bootcamp **AI & ML** — fokus pada analisis dan prediksi nilai UTBK per subtes (TO1..TO7) berdasarkan jurusan dan fitur terkait.
+Aplikasi portofolio ini fokus pada analisis dan prediksi nilai UTBK per subtes berdasarkan jurusan dan fitur terkait.
 """)
 
 # ---------------------------
